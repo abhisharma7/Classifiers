@@ -1,8 +1,14 @@
 #!/home/hackpython/anaconda3/bin/python
 
-from sklearn import cross_validation, neighbors
+# Author: Abhishek Sharma
+
+from sklearn import cross_validation, neighbors,svm
+from sklearn.neighbors.nearest_centroid import NearestCentroid
+from sklearn.linear_model import LinearRegression
 #from sklearn.model_selection import KFold, cross_val_score
 from sklearn.cross_validation import KFold
+from sklearn.cluster import KMeans
+import sklearn.metrics as sm
 import numpy as np
 import pandas as pd
 import sys
@@ -13,7 +19,7 @@ class classifier(object):
         self.iris_dataset = "dataset/irisdata150.txt"
         self.atntface_dataset = "dataset/ATNTFaceImages400.txt"
         self.atntletter_dataset = "dataset/HandWrittenLetters.txt"
-        self.nba_dataset = "dataset/"
+        self.nba_dataset = "dataset/nba.xlsx"
         self.algorithm = algorithm
         self.dataset = dataset
         self.execute()
@@ -25,14 +31,50 @@ class classifier(object):
         label = np.array(df.iloc[:,4:])
         return data,label
 
-    def atntface_dataset_prepocessing(self):
-        pass
-    
+    def atntface_dataset_preprocessing(self):
+
+        df = pd.read_csv(self.atntface_dataset,header=None)
+        df_train = df.drop(0,axis=0)
+        train_list = []
+        class_list = []
+        for column in df_train.columns:
+            nlist =[]
+            clist = []
+            nlist.append(df_train[column])
+            train_list.append(nlist)
+        X=np.array(train_list)
+        dataset_size = len(X)
+        data = X.reshape(dataset_size,-1)
+        label = np.array(df.iloc[0])
+        return data,label
+
     def atntletter_dataset_preprocessing(self):
-        pass
-    
+        df = pd.read_csv(self.atntletter_dataset,header=None)
+        df_train = df.drop(0,axis=0)
+        train_list = []
+        class_list = []
+        for column in df_train.columns:
+            nlist =[]
+            clist = []
+            nlist.append(df_train[column])
+            train_list.append(nlist)
+        X=np.array(train_list)
+        dataset_size = len(X)
+        data = X.reshape(dataset_size,-1)
+        label =np.array(df.iloc[0])
+        return data,label
+
     def nba_dataset_preprocessing(self):
-        pass
+        x1 = pd.ExcelFile(self.nba_dataset,header=None)
+        df = x1.parse('Sheet1')
+        label = np.array(df.iloc[:401,2:3])
+        df = df.drop('Pos', 1)
+        df = df.drop('Rk',1)
+        df = df.drop('Player',1)
+        df = df.drop('Tm',1)
+        data = np.array(df.iloc[:401,0:10])
+        test_data = np.array(df.iloc[402:476,0:10])
+        return data, label, test_data
 
     def dataset_preprocessing(self):
         
@@ -49,12 +91,11 @@ class classifier(object):
             return data,label
 
         elif self.dataset == "nba":
-            data,label = self.nba_dataset_preprocessing()
-            return data,label
+            data,label,test_data = self.nba_dataset_preprocessing()
+            return data,label,test_data
 
-    def knnclassifier(self):
-        
-        data,label = self.dataset_preprocessing() 
+    def knnclassifier(self): 
+        data, label = self.dataset_preprocessing() 
         kf = KFold(n=len(data),n_folds=5,shuffle=True)
         for train_index, test_index in kf:
             X_train, X_test = data[train_index], data[test_index]
@@ -62,33 +103,53 @@ class classifier(object):
             clf = neighbors.KNeighborsClassifier(n_neighbors=3)
             clf.fit(X_train,y_train)
             accuracy=clf.score(X_test,y_test)
-            test = np.array([[6.1,2.8,4,1.3],[6.1,3,4.9,1.8],[5,3.4,1.5,0.2]])
-            prediction = clf.predict(test)
-            #print("TRAIN:", train_index, "TEST:", test_index)
             print(accuracy)
-            print(prediction)
 
     def centriodclassifier(self):
-        pass
+        data,label = self.dataset_preprocessing()
+        kf = KFold(n=len(data),n_folds=5,shuffle=True)
+        for train_index,test_index in kf:
+            X_train, X_test = data[train_index], data[test_index]
+            y_train, y_test = label[train_index], label[test_index]
+            clf = NearestCentroid()
+            clf.fit(X_train,y_train)
+            accuracy=clf.score(X_test,y_test)
+            print(accuracy)
 
     def linearclassifier(self):
-        pass
-
+        data,label = self.dataset_preprocessing()
+        kf = KFold(n=len(data),n_folds=5,shuffle=True)
+        for train_index,test_index in kf:
+            X_train, X_test = data[train_index], data[test_index]
+            y_train, y_test = label[train_index], label[test_index]
+            clf = LinearRegression(fit_intercept=True)
+            clf.fit(X_train,y_train)
+            accuracy = clf.score(X_test,y_test)
+            print(accuracy)
+    
     def svmclassifier(self):
-        pass
-
+        data,label = self.dataset_preprocessing()
+        kf = KFold(n=len(data),n_folds=5,shuffle=True)
+        for train_index,test_index in kf:
+            X_train, X_test = data[train_index], data[test_index]
+            y_train, y_test = label[train_index], label[test_index]
+            clf = svm.SVC(kernel='linear',gamma=2)
+            clf.fit(X_train, y_train)
+            accuracy = clf.score(X_test,  y_test)
+            print(accuracy)
+            
     def execute(self):
 
         if self.algorithm == "knn":
             self.knnclassifier()
         elif self.algorithm == "centroid":
-            pass
+            self.centriodclassifier()
         elif self.algorithm == "linear":
-            pass
+            self.linearclassifier()
         elif self.algorithm == "svm":
-            pass
+            self.svmclassifier()
         elif self.algorithm == "kmeans":
-            pass
+            self.kmeansclustering()
         else:
             sys.exit("algorithm not found")
 
@@ -98,10 +159,12 @@ if __name__ == '__main__':
     # 2. Centroid Classifier    (centroid)
     # 3. Linear Regression      (linear)
     # 4. Support Vector Machine (svm)
-    # 5. K-means Clustering     (kmeans)
     # Dataset
     # 1. irisdataset
     # 2. atntface
     # 3. atntletter
     # 4. nba
-    classifier("knn","irisdataset")
+    classifier("knn","atntletter")
+    classifier("centroid","atntletter")
+    classifier("linear","atntletter")
+    classifier("svm","atntletter")
