@@ -1,7 +1,12 @@
 #!/home/hackpython/anaconda3/bin/python
 
-# Author: Abhishek Sharma
+'''
+Implementation of KNN, Centroid, Linear Regression and SVM classifiers using Sklearn. 
 
+Author: Abhishek Sharma
+
+Last Modified: June 2 2017
+'''
 from sklearn import cross_validation, neighbors,svm
 from sklearn.neighbors.nearest_centroid import NearestCentroid
 from sklearn.linear_model import LinearRegression
